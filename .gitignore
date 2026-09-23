@@ -1,41 +1,54 @@
-# Compiled Lua sources
-luac.out
+local P = game.Players.LocalPlayer
+local P1 = Vector3.new(-22, 6.3, -32)
+local P4 = Vector3.new(-22, 6.3, -86)
+local P5 = Vector3.new(22, 6.3, -32)
+local WAIT = 5
 
-# luarocks build files
-*.src.rock
-*.zip
-*.tar.gz
+local function root()
+	local c = P.Character
+	return c and c:FindFirstChild("HumanoidRootPart")
+end
 
-# Object files
-*.o
-*.os
-*.ko
-*.obj
-*.elf
+-- หา Spawn ของแปลงที่ใกล้ตัวที่สุด
+local start = (P.Character or P.CharacterAdded:Wait()):WaitForChild("HumanoidRootPart")
+local sp, bd = nil, math.huge
+for _, plot in ipairs(workspace.Plots.Claimed:GetChildren()) do
+	local s = plot:FindFirstChild("Spawn")
+	if s then
+		local d = (s:GetPivot().Position - start.Position).Magnitude
+		if d < bd then sp, bd = s, d end
+	end
+end
 
-# Precompiled Headers
-*.gch
-*.pch
+-- สร้าง 8 จุด (4 จุดต่อแถว x 2 แถว)
+local offs = {}
+for row = 0, 1 do
+	for _, x in ipairs({ 0, 18, 36, 52 }) do
+		table.insert(offs, P1 + (P4 - P1) * (x / 52) + (P5 - P1) * row)
+	end
+end
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-*.def
-*.exp
+-- ป้ายพิกัด
+local l = Instance.new("TextLabel", Instance.new("ScreenGui", P.PlayerGui))
+l.Size = UDim2.fromOffset(170, 24)
+l.Position = UDim2.new(0, 10, 0, 100)
+l.BackgroundColor3 = Color3.new(0, 0, 0)
+l.TextColor3 = Color3.new(1, 1, 1)
+game:GetService("RunService").RenderStepped:Connect(function()
+	local r = root()
+	if r then
+		local o = sp:GetPivot():PointToObjectSpace(r.Position)
+		l.Text = string.format("%.1f, %.1f, %.1f", o.X, o.Y, o.Z)
+	end
+end)
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
+-- วนวาป
+local i = 1
+while true do
+	local r = root()
+	if r then
+		r.CFrame = CFrame.new(sp:GetPivot():PointToWorldSpace(offs[i]))
+		i = i % #offs + 1
+	end
+	task.wait(WAIT)
+end
